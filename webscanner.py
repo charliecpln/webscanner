@@ -11,6 +11,7 @@ import time
 from sys import exit
 import socket
 from datetime import datetime
+import webbrowser
 
 try:
     def sil():
@@ -26,21 +27,25 @@ try:
             print("Libraries checking...")
             from colorama import Fore, Back, Style, init
             import requests
-            import webbrowser
             sil()
         
         except ImportError:
             print("Libraries are auto dowloading...")
-            os.system("pip install colorama requests webbrowser")
+            os.system("pip install colorama requests")
             sil()
     installation()
 
     from colorama import Fore, Back, Style, init
     import requests
-    import webbrowser
 
     init(autoreset=True)
 
+except Exception as e:
+    print(f"An error occurred during installation: {e}\n")
+    input("\nPress 'enter' to exit...\n")
+    exit()
+
+try:
     banner = Fore.LIGHTRED_EX + Style.BRIGHT + """
  _       ____________     _____ _________    _   ___   ____________ 
 | |     / / ____/ __ )   / ___// ____/   |  / | / / | / / ____/ __ \'
@@ -59,7 +64,7 @@ try:
 
         else:
             print(Fore.LIGHTRED_EX + "[-] Connection test not successful!")
-            input(Fore.LIGHTMAGENTA_EX + "Press 'enter' to exit...\n")
+            input(Fore.LIGHTMAGENTA_EX + "\nPress 'enter' to exit...\n")
             exit()
 
     connectiontest()
@@ -87,19 +92,29 @@ try:
                     payloadlar = payload_dosyasi.readlines()
             except FileNotFoundError:
                 print(Fore.LIGHTRED_EX + "[!] Payload file not found.")
-                input(Fore.LIGHTMAGENTA_EX + "Press 'enter' to exit...\n")
-                return
+                input(Fore.LIGHTMAGENTA_EX + "\nPress 'enter' to exit...\n")
+                main()
             
         vulnerability_found = False
+        
+        headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Content-Type': 'application/json'
+}
 
         for payload in payloadlar:
             payload = payload.strip()
             try:
-                response = requests.get(f"{targeturl}{payload}")
-            except requests.RequestException as e:
-                print(Fore.LIGHTRED_EX + f"[!] Error: {e}")
-                input(Fore.LIGHTMAGENTA_EX + "Press 'enter' to exit...\n")
-                return
+                response = requests.get(f"{targeturl}{payload}", headers=headers, timeout=15)
+            except requests.exceptions.ConnectionError:
+                print(Fore.LIGHTRED_EX + f"[!] Error: Connection error!")
+                input(Fore.LIGHTMAGENTA_EX + "\nPress 'enter' to exit...\n")
+                main()
+            except requests.exceptions.RequestException as req_err:
+                print(Fore.LIGHTRED_EX + f"[!] General error occurred: {req_err}")
+                input(Fore.LIGHTMAGENTA_EX + "\nPress 'enter' to exit...\n")
+                main()
 
             if "sql" in response.text.lower():
                 print(Style.BRIGHT + Fore.LIGHTGREEN_EX + f"\n\n[+] SQL Injection vulnerability detected:\nUrl: {targeturl}\nPayload: {payload}\n")
@@ -147,18 +162,28 @@ try:
                     payloadlar = [payload.strip() for payload in payloadlar]
             except FileNotFoundError:
                 print(Fore.LIGHTRED_EX + "[!] Payload file not found.")
-                input(Fore.LIGHTMAGENTA_EX + "Press 'enter' to exit...\n")
-                return
+                input(Fore.LIGHTMAGENTA_EX + "\nPress 'enter' to exit...\n")
+                main()
             
         vulnerability_found = False
 
+        headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Content-Type': 'application/json'
+}
+
         for payload in payloadlar:
             try:
-                response = requests.get(f"{targeturl}?input={payload}")
-            except requests.RequestException as e:
-                print(Fore.LIGHTRED_EX + f"[!] Error: {e}")
-                input(Fore.LIGHTMAGENTA_EX + "Press 'enter' to exit...\n")
-                return
+                response = requests.get(f"{targeturl}?input={payload}", headers=headers, timeout=15)
+            except requests.exceptions.ConnectionError:
+                print(Fore.LIGHTRED_EX + f"[!] Error: Connection error!")
+                input(Fore.LIGHTMAGENTA_EX + "\nPress 'enter' to exit...\n")
+                main()
+            except requests.exceptions.RequestException as req_err:
+                print(Fore.LIGHTRED_EX + f"[!] General error occurred: {req_err}")
+                input(Fore.LIGHTMAGENTA_EX + "\nPress 'enter' to exit...\n")
+                main()
 
             if payload in response.text:
                 print(Style.BRIGHT + Fore.LIGHTGREEN_EX + f"\n\n[+] XSS vulnerability detected:\nUrl: {targeturl}\nPayload: {payload}\n")
@@ -185,14 +210,18 @@ try:
         print(banner)
 
         print(Fore.LIGHTYELLOW_EX + f"\n\nTarget IP: {ipadres}\nPort: {baslangicport} - {bitisport}\n\n")
-
+        time.sleep(0.5)
         baslangiczamani = datetime.now()
 
         for port in range(baslangicport, bitisport + 1):
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(1)
-            result = sock.connect_ex((ipadres, port))
-
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(1)
+                result = sock.connect_ex((ipadres, port))
+            except Exception as e:
+                print(Fore.LIGHTRED_EX + Style.BRIGHT + f"Error: {e}")
+                input(Fore.LIGHTMAGENTA_EX + "\nPress 'enter' to exit...\n")
+                main()
             if result == 0:
                 print(Style.BRIGHT + Fore.LIGHTGREEN_EX + f"[+] Open port: {port}")
                 openports.append(port)
@@ -274,7 +303,12 @@ try:
         for w in wordlist:
             w = w.strip()
             fullurl = f"{targeturl}{w}"
-            response = requests.get(fullurl)
+            try:
+                response = requests.get(fullurl)
+            except:
+                print(Fore.LIGHTRED_EX + Style.BRIGHT + f"Error: {error}")
+                input(Fore.LIGHTMAGENTA_EX + "\nPress 'enter' to exit...\n")
+                main()
             if response.status_code == 200:
                 print(Fore.LIGHTGREEN_EX + Style.BRIGHT + f"[+] Directory found: {fullurl}")
                 directorys.append(fullurl)
@@ -319,7 +353,7 @@ This script was writed by @charliecpln👻
           [Telegram] -  @charliecpln
 """)
 
-        time.sleep(2.7)
+        time.sleep(2.3)
         input(Fore.LIGHTMAGENTA_EX + "Press 'enter' to continue...\n")
         main()
 
@@ -334,38 +368,38 @@ This script was writed by @charliecpln👻
     [4] - Directory Scanner
     [5] - Admin Panel Finder
     
-    [6] - Contact
+    [C] - Contact
     [Q] - Exit
     
     """
         print(menu)
-        sec = input(Style.BRIGHT + Fore.LIGHTYELLOW_EX + "Please enter your choice: ")
+        sec = input(Style.BRIGHT + Fore.LIGHTYELLOW_EX + "Please enter your choice: ").lower()
 
-        if sec == "1":
+        if sec == "1" or sec == "sql":
             sil()
             sqlscanner()
 
-        elif sec == "2":
+        elif sec == "2" or sec == "xss":
             sil()
             xssscanner()
         
-        elif sec == "3":
+        elif sec == "3" or sec == "port":
             sil()
             porttarayici()
 
-        elif sec == "4":
+        elif sec == "4" or sec == "directory":
             sil()
             dizintarama()
 
-        elif sec == "5":
+        elif sec == "5" or sec == "admin":
             sil()
             adminpanelfinder()
 
-        elif sec == "6" or sec.lower() == "c":
+        elif sec == "6" or sec == "c" or sec == "contact":
             sil()
             contact()
 
-        elif sec.lower() == "q" or sec == "7" or sec == "0" or sec == "10":
+        elif sec == "q" or sec == "7" or sec == "0" or sec == "10" or sec == "quit" or sec == "exit":
             sil()
             exit()
 
@@ -377,5 +411,5 @@ This script was writed by @charliecpln👻
     main()
 
 except Exception as error:
-    input(f"Error: {error}\nPress 'enter' to exit...\n")
+    input(Fore.LIGHTRED_EX + Style.BRIGHT + f"Error: {error}\nPress 'enter' to exit...\n")
     exit()
